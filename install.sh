@@ -231,6 +231,7 @@ LINKS=(
   "configs/geany|$HOME/.config/geany"
   "configs/kitty|$HOME/.config/kitty"
   "home/zshrc|$HOME/.zshrc"
+  "bin/wallpaper.sh|$HOME/.local/bin/wallpaper"
 )
 
 link_one() {
@@ -269,7 +270,8 @@ for f in \
   "$CONFIG_SRC/niri/screenshot.sh" \
   "$CONFIG_SRC/waybar/scripts/power_menu.sh" \
   "$CONFIG_SRC/waybar/scripts/toggle_clock.sh" \
-  "$CONFIG_SRC/waybar/scripts/weather.sh"; do
+  "$CONFIG_SRC/waybar/scripts/weather.sh" \
+  "$REPO_DIR/bin/wallpaper.sh"; do
   if [[ -f "$f" ]]; then
     run chmod +x "$f"
     ok "chmod +x ${f#"$REPO_DIR"/}"
@@ -289,7 +291,29 @@ printf '    %s\n' "${C_C}•${C_N} 启动 Niri（主力）  :  niri"
 printf '    %s\n' "${C_C}•${C_N} 启动 MangoWM（备用）:  mango"
 printf '    %s\n' "${C_C}•${C_N} 检查 Niri 配置     :  niri validate -c ~/.config/niri/config.kdl"
 printf '    %s\n' "${C_C}•${C_N} 热重载 Niri 配置    :  niri msg action load-config-file"
+printf '    %s\n' "${C_C}•${C_N} 选一张壁纸         :  wallpaper pick"
 printf '\n'
+
+# 第一次安装还没选过壁纸：交互式问一句，选完立刻生效
+WP_CONF="$HOME/.config/dotfiles/wallpaper"
+if [[ $DRY_RUN -eq 0 && ! -f "$WP_CONF" ]]; then
+  printf '  %s\n' "${C_Y}还没有选壁纸。仓库不附带图片，用你自己的更好看。${C_N}"
+  if [[ -t 0 && -t 1 ]]; then
+    printf '  %s' "${C_B}现在从 ~/Pictures 里挑一张？[Y/n] ${C_N}"
+    read -r answer
+    if [[ ! "$answer" =~ ^[Nn] ]]; then
+      "$HOME/.local/bin/wallpaper" pick || true
+      if [[ -f "$WP_CONF" ]]; then
+        ok "壁纸已选定，写在 $WP_CONF"
+      else
+        printf '  %s\n' "${C_D}跳过。之后随时运行 wallpaper pick${C_N}"
+      fi
+    fi
+  else
+    printf '  %s\n' "${C_D}非交互环境，跳过。之后运行：wallpaper pick${C_N}"
+  fi
+  printf '\n'
+fi
 printf '  %s\n' "${C_D}原配置已备份为 xxx.bak-$STAMP，确认无误后可自行删除。${C_N}"
 printf '  %s\n' "${C_D}详细日志: $LOG_FILE${C_N}"
 printf '\n'

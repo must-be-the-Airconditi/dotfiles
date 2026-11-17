@@ -16,7 +16,7 @@ input {
 
 // 自动启动项
 spawn-at-startup "waybar"
-spawn-at-startup "sh" "-c" "swaybg -i $HOME/Pictures/f1-rb22.jpg -m fill"
+spawn-at-startup "sh" "-c" "$HOME/.local/bin/wallpaper"
 spawn-at-startup "mako"
 
 layout {

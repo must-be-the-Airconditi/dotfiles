@@ -18,7 +18,7 @@
 | 启动器 | **Fuzzel** | Wayland 原生启动器 |
 | 终端 | **Kitty** | GPU 加速 + Catppuccin 配色 |
 | Shell | **Zsh** | Oh My Zsh + Powerlevel10k + autosuggestions |
-| 通知 / 壁纸 | **Mako** / **Swaybg** | 毛玻璃通知；壁纸由 compositor 开机拉起 |
+| 通知 / 壁纸 | **Mako** / **Swaybg** | 毛玻璃通知；壁纸由你自己选（仓库不附带图片） |
 | 编辑器 / IDE | **nano / micro / Geany / PyCharm** | 终端用 nano、micro，图形界面用 Geany、PyCharm |
 | Python 环境 | **direnv** | 进目录自动加载 `.envrc` 虚拟环境 |
 
@@ -35,12 +35,14 @@ dotfiles/
 │   └── kitty/               # kitty.conf + 主题
 ├── home/
 │   └── zshrc                # → ~/.zshrc
+├── bin/
+│   └── wallpaper.sh         # → ~/.local/bin/wallpaper（选壁纸 / 开机拉起）
 ├── install.sh               # 装包 → 备份 → 软链接
 ├── .gitignore
 └── README.md
 ```
 
-映射规则只有两条：**`configs/X` → `~/.config/X`**，**`home/X` → `~/X`**。
+映射规则三条：**`configs/X` → `~/.config/X`**，**`home/X` → `~/X`**，**`bin/X` → `~/.local/bin/X`**。
 新增一个应用 = 把配置放进对应位置，再在 `install.sh` 的 `LINKS` 表里加一行。
 
 ## 安装
@@ -147,7 +149,27 @@ cd ~/dotfiles && git pull              # 拉取最新配置
 niri msg action load-config-file       # 热重载 Niri
 pkill -x waybar; waybar &              # 重启 Waybar
 ls -l ~/.config/niri ~/.zshrc          # 检查软链接是否正常
+wallpaper                              # 换壁纸（见下）
 ```
+
+**壁纸自己选，仓库不替你决定。** 仓库里不放图片文件——每个人的喜好不一样。开机时 `wallpaper` 按这个顺序找：
+
+1. `WALLPAPER` 环境变量（临时覆盖）
+2. `~/.config/dotfiles/wallpaper` 里记着你上次选的图
+3. `~/Pictures` 下排第一的图片（还没选过时的临时顶替）
+4. 主题底色 `#1e1e2e`（一张图都没有也不会黑屏）
+
+**装完第一件事：挑一张。** 把喜欢的图放进 `~/Pictures`，然后：
+
+```bash
+wallpaper pick            # fuzzel 里选一张，选择会记住
+wallpaper set ~/图/a.jpg   # 也可以直接指定路径
+wallpaper list            # 看候选，● 是当前选中的
+wallpaper current         # 确认现在跑的是哪张
+wallpaper -m stretch      # 换缩放模式：fill / fit / stretch / center / tile
+```
+
+你的选择存在 `~/.config/dotfiles/wallpaper`（一行绝对路径），不进仓库，所以换人换机器互不影响。
 
 **任意用户名都能装。** 配置里没有任何写死的家目录路径——壁纸、脚本、PATH 全部用 `$HOME/...` 或 `~/...`，换账号、换机器都直接可用。
 
