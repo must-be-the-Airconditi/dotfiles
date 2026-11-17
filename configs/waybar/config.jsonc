@@ -1,0 +1,127 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 36,
+    "margin-top": 8,
+    "margin-left": 12,
+    "margin-right": 12,
+    "spacing": 10,
+    "modules-left": [
+        "niri/workspaces",
+        "niri/window",
+        "mpris"
+    ],
+    "modules-center": [
+        "custom/clock"
+    ],
+    "modules-right": [
+        "custom/weather",
+        "pulseaudio",
+        "backlight",
+        "cpu",
+        "memory",
+        "network",
+        "tray",
+        "custom/updates",
+        "custom/power"
+    ],
+    "niri/workspaces": {
+        "format": "{index}"
+    },
+    "niri/window": {
+        "format": "\uf2d0 {title}",
+        "max-length": 50
+    },
+    "clock": {
+        "format": "\uf017 {:%H:%M}"
+    },
+    "cpu": {
+        "format": "\uf4bc {usage}%",
+        "interval": 10
+    },
+    "memory": {
+        "format": "\uefc5 {percentage}%",
+        "interval": 10
+    },
+    "network": {
+        "format-wifi": "\uf1eb {essid}",
+        "format-ethernet": "\udb80\ude00 Wired",
+        "format-disconnected": "\u26a0 Disconnected"
+    },
+    "tray": {
+        "spacing": 10
+    },
+    "pulseaudio": {
+        "format": "{icon} {volume}%",
+        "format-muted": "\uf6a9 Mute",
+        "format-icons": {
+            "default": [
+                "\uf026",
+                "\uf027",
+                "\uf028"
+            ]
+        },
+        "max-volume": 100,
+        "scroll-step": 5,
+        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-scroll-up": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+",
+        "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+    },
+    "wireplumber": {
+        "format": "{icon} {volume}%",
+        "format-muted": "\uf6a9 Mute",
+        "format-icons": {
+            "default": [
+                "\uf026",
+                "\uf027",
+                "\uf028"
+            ]
+        },
+        "max-volume": 100,
+        "scroll-step": 5,
+        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-scroll-up": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+",
+        "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+    },
+    "mpris": {
+        "format": "{player_icon} {dynamic}",
+        "format-paused": "{status_icon} <i>{dynamic}</i>",
+        "player-icons": {
+            "default": "\u25b6",
+            "mpv": "\ud83c\udfb5",
+            "firefox": "\ud83c\udf10",
+            "spotify": "\ud83c\udfa7"
+        },
+        "status-icons": {
+            "paused": "\u23f8"
+        },
+        "max-length": 30,
+        "on-click": "playerctl play-pause",
+        "on-scroll-up": "playerctl next",
+        "on-scroll-down": "playerctl previous"
+    },
+    "custom/updates": {
+        "exec": "checkupdates | wc -l",
+        "format": "\udb81\udeb0 {}",
+        "interval": 10,
+        "on-click": "alacritty -e sudo pacman -Syu"
+    },
+    "custom/power": {
+        "format": "\u23fb",
+        "on-click": "/home/usernameless/.config/waybar/power_menu.sh",
+        "tooltip": false
+    },
+    "custom/clock": {
+        "exec": "/home/usernameless/.config/waybar/toggle_clock.sh",
+        "interval": 1,
+        "signal": 8,
+        "on-click": "/home/usernameless/.config/waybar/toggle_clock.sh toggle",
+        "on-click-right": "khal interactive"
+    },
+        "custom/weather": {
+        "exec": "~/.config/waybar/scripts/weather.sh",
+        "interval": 900,
+        "return-type": "json",
+        "tooltip": true
+    }
+}

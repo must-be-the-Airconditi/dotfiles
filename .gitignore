@@ -1,0 +1,70 @@
+
+# ============================================================
+#  Arch Linux Dotfiles · .gitignore
+#  原则：任何私钥、凭据、日志、缓存、备份，一律不进仓库
+# ============================================================
+
+# ---------- 敏感信息（最高优先级） ----------
+.ssh/
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+*.pem
+*.key
+*.p12
+*.pfx
+*.kdbx
+*.gpg
+.env
+.env.*
+!.env.example
+secrets/
+*secret*
+*credential*
+*password*
+hosts.yml
+auth.json
+.netrc
+.npmrc
+.pypirc
+*.token
+*.session
+
+# ---------- 日志 / 备份 / 历史 ----------
+*.log
+logs/
+*.bak
+*.bak_*
+*.bak-*
+*.orig
+*.rej
+*~
+*.swp
+*.swo
+*.swn
+.history
+history
+.zsh_history
+.zsh_history.*
+.bash_history
+.bash_history.*
+fish_history
+zsh_sessions/
+
+# ---------- 编辑器 / 工具 运行时缓存 ----------
+configs/micro/buffers/
+configs/micro/backups/
+configs/geany/session.conf
+configs/geany/tags/
+configs/kitty/*.bak*
+.cache/
+.tmp/
+
+# ---------- 系统杂项 ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.pid
+*.sock

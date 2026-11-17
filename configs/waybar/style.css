@@ -1,0 +1,49 @@
+* { border: none; border-radius: 0; font-family: "JetBrainsMono Nerd Font", "Noto Sans CJK SC"; font-size: 14px; min-height: 0; }
+window#waybar {
+    background-color: rgba(30, 30, 46, 0.7);
+    background-color: rgba(30, 30, 46, 0.7); color: #cdd6f4;
+    border-radius: 12px; border: 1px solid rgba(137, 180, 250, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+#custom-weather , #workspaces, #window, #clock, #cpu, #memory, #network, #pulseaudio, #backlight, #tray { padding: 0 10px; margin: 4px 2px; }
+#workspaces button { padding: 0 8px; color: #a6adc8; background: transparent; border-radius: 8px; transition: all 0.3s ease; }
+#workspaces button.focused { color: #1e1e2e; background: #89b4fa; font-weight: bold; }
+#workspaces button:hover { background: #313244; color: #cdd6f4; }
+#pulseaudio { color: #a6e3a1; }
+#backlight { color: #f9e2af; }
+#clock { color: #89b4fa; font-weight: bold; }
+#window { color: #cba6f7; }
+
+/* 新模块样式 */
+#mpris {
+    color: #f5c2e7; /* 粉色 */
+    padding: 0 10px;
+}
+#temperature {
+    color: #fab387; /* 橙色 */
+}
+#temperature.critical {
+    color: #f38ba8; /* 红色警告 */
+}
+#custom-updates {
+    color: #a6e3a1; /* 绿色 */
+}
+#custom-power {
+    color: #f38ba8; /* 红色电源键 */
+    font-size: 16px;
+    font-weight: bold;
+    padding-right: 15px;
+}
+/* 天气模块 (Catppuccin 天蓝色) */
+#custom-weather {
+    color: #89dceb; /* 天蓝色，与整体风格呼应 */
+    padding: 0 10px;
+    margin: 0 2px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+#custom-weather:hover {
+    background-color: #313244; /* 悬停时的高亮底色 */
+    color: #89b4fa; /* 悬停变为经典蓝色 */
+}

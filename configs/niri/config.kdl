@@ -1,0 +1,142 @@
+prefer-no-csd
+
+// Niri 美化配置
+
+input {
+    keyboard {
+        xkb {
+            layout "us"
+        }
+    }
+    touchpad {
+        tap
+        natural-scroll
+    }
+}
+
+// 自动启动项
+spawn-at-startup "waybar"
+spawn-at-startup "swaybg" "-i" "/home/usernameless/Pictures/f1-rb22.jpg" "-m" "fill"
+spawn-at-startup "mako"
+
+layout {
+    gaps 12
+    center-focused-column "never"
+    
+    focus-ring {
+        width 2
+        active-color "#89b4fa"
+        inactive-color "#313244"
+    }
+    
+    border {
+        width 2
+        active-gradient from="#89b4fa" to="#cba6f7" angle=45
+        inactive-color "#313244"
+    }
+    
+    shadow {
+        on
+    }
+    
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+}
+
+animations {
+    window-open {
+        duration-ms 150
+        curve "ease-out-cubic"
+    }
+    window-close {
+        duration-ms 150
+        curve "ease-out-cubic"
+    }
+}
+
+binds {
+    // 窗口最大化 (由脚本生成)
+    Mod+F { maximize-column; }
+    // 截图快捷键
+    Mod+Shift+S { spawn "/home/usernameless/.config/niri/screenshot.sh"; }
+
+    // 截图快捷键
+
+
+    Mod+T { spawn "kitty"; }
+    Mod+D { spawn "fuzzel"; }
+    Mod+Q { close-window; }
+    
+    Mod+Left  { focus-column-left; }
+    Mod+Right { focus-column-right; }
+    Mod+Up    { focus-window-up; }
+    Mod+Down  { focus-window-down; }
+    Mod+Shift+F { toggle-window-floating; }    
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+}
+
+window-rule {
+    match app-id="pavucontrol|nm-connection-editor|blueman-manager"
+    open-floating true
+}
+
+// Waybar 毛玻璃效果
+layer-rule {
+    match namespace="^waybar$"
+    background-effect {
+        blur true
+        xray true
+        noise 0.05
+        saturation 1.5
+    }
+}
+
+
+// 开启窗口毛玻璃 (亮度补偿版)
+window-rule {
+    match app-id=".*"
+    opacity 0.90
+    draw-border-with-background false
+    background-effect {
+        blur true
+        xray true
+        noise 0.08
+        saturation 1.6
+    }
+}
+
+// Minecraft 强制全屏规则 (由脚本生成)
+window-rule {
+    // 匹配标题包含 Minecraft 或 我的世界 的窗口
+    match title=".*Minecraft.*"
+    match title=".*我的世界.*"
+    open-fullscreen true
+}
+
+// Mako 通知毛玻璃与透明度
+
+// Mako 通知毛玻璃与透明度
+layer-rule {
+    match namespace="^mako$"
+    background-effect {
+        blur true
+        xray true
+    }
+}
+
+spawn-at-startup "sh" "-c" "sleep 2 && env DESKTOPINTEGRATION=1 /home/usernameless/AppImages/devsidecar.appimage --no-sandbox"
+
+window-rule {
+    match title=".*HMCL.*|.*Hello Minecraft.*"
+    open-fullscreen false
+    open-floating false
+}
+window-rule {
+    match title=".*MOTD.*"
+    open-fullscreen false
+}
