@@ -149,14 +149,9 @@ pkill -x waybar; waybar &              # 重启 Waybar
 ls -l ~/.config/niri ~/.zshrc          # 检查软链接是否正常
 ```
 
-换用户名后，配置里写死的绝对路径（壁纸、脚本）需要批量替换：
+**任意用户名都能装。** 配置里没有任何写死的家目录路径——壁纸、脚本、PATH 全部用 `$HOME/...` 或 `~/...`，换账号、换机器都直接可用。
 
-```bash
-cd ~/dotfiles
-grep -rl "/home/usernameless" configs/ | xargs sed -i "s|/home/usernameless|$HOME|g"
-```
-
-`install.sh` 检测到 `$HOME` 不是 `/home/usernameless` 时也会提醒你这件事。
+`install.sh` 启动时会自检：一旦发现新加的配置里出现 `/home/<用户名>` 这类写法，会列出来提醒你改成 `$HOME`。
 
 ## 安全
 

@@ -120,9 +120,13 @@ step "配置源目录: $CONFIG_SRC"
 step "日志文件:   $LOG_FILE"
 [[ $DRY_RUN -eq 1 ]] && warn "DRY-RUN 模式：不会修改任何文件"
 
-if [[ "$HOME" != "/home/usernameless" ]]; then
-  warn "配置内写死了 /home/usernameless 路径，当前 HOME=$HOME"
-  warn "若壁纸/脚本失效，请把配置里的该路径替换为 $HOME"
+# 便携性检查：所有配置都应使用 $HOME，而不是写死的 /home/<用户名>
+if grep -rIq "/home/[a-zA-Z]" "$CONFIG_SRC" "$REPO_DIR/home" 2>/dev/null; then
+  warn "以下位置仍写死了家目录路径（换用户名后会失效）："
+  grep -rIn "/home/[a-zA-Z]" "$CONFIG_SRC" "$REPO_DIR/home" 2>/dev/null | sed 's/^/      /'
+  warn "建议改成 \$HOME/... 写法"
+else
+  ok "配置全部使用 \$HOME，任意用户名均可安装"
 fi
 
 [[ -d "$CONFIG_SRC" ]] || die "找不到 $CONFIG_SRC，请在仓库根目录运行本脚本"

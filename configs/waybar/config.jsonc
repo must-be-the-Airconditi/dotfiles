@@ -108,18 +108,18 @@
     },
     "custom/power": {
         "format": "\u23fb",
-        "on-click": "/home/usernameless/.config/waybar/scripts/power_menu.sh",
+        "on-click": "sh -c '$HOME/.config/waybar/scripts/power_menu.sh'",
         "tooltip": false
     },
     "custom/clock": {
-        "exec": "/home/usernameless/.config/waybar/scripts/toggle_clock.sh",
+        "exec": "sh -c '$HOME/.config/waybar/scripts/toggle_clock.sh'",
         "interval": 1,
         "signal": 8,
-        "on-click": "/home/usernameless/.config/waybar/scripts/toggle_clock.sh toggle",
+        "on-click": "sh -c '$HOME/.config/waybar/scripts/toggle_clock.sh toggle'",
         "on-click-right": "khal interactive"
     },
         "custom/weather": {
-        "exec": "/home/usernameless/.config/waybar/scripts/weather.sh",
+        "exec": "sh -c '$HOME/.config/waybar/scripts/weather.sh'",
         "interval": 900,
         "return-type": "json",
         "tooltip": true

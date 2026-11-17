@@ -139,7 +139,7 @@ source $ZSH/oh-my-zsh.sh
 
 
 # Created by `pipx` on 2026-10-31 12:27:21
-export PATH="$PATH:/home/usernameless/.local/bin"
+export PATH="$PATH:$HOME/.local/bin"
 eval "$(direnv hook zsh)"
 
 export PATH="$HOME/.npm-global/bin:$PATH"
@@ -147,7 +147,7 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 
 
 # dev-sidecar proxy
-[ -f "/home/usernameless/.dev-sidecar/proxy.env" ] && source "/home/usernameless/.dev-sidecar/proxy.env"
+[ -f "$HOME/.dev-sidecar/proxy.env" ] && source "$HOME/.dev-sidecar/proxy.env"
 
 # >>> dev-sidecar env >>>
 # managed by dev-sidecar, do not edit this block manually

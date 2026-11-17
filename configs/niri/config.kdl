@@ -16,7 +16,7 @@ input {
 
 // 自动启动项
 spawn-at-startup "waybar"
-spawn-at-startup "swaybg" "-i" "/home/usernameless/Pictures/f1-rb22.jpg" "-m" "fill"
+spawn-at-startup "sh" "-c" "swaybg -i $HOME/Pictures/f1-rb22.jpg -m fill"
 spawn-at-startup "mako"
 
 layout {
@@ -61,7 +61,7 @@ binds {
     // 窗口最大化 (由脚本生成)
     Mod+F { maximize-column; }
     // 截图快捷键
-    Mod+Shift+S { spawn "/home/usernameless/.config/niri/screenshot.sh"; }
+    Mod+Shift+S { spawn "sh" "-c" "$HOME/.config/niri/screenshot.sh"; }
 
     // 截图快捷键
 
@@ -129,7 +129,7 @@ layer-rule {
     }
 }
 
-spawn-at-startup "sh" "-c" "sleep 2 && env DESKTOPINTEGRATION=1 /home/usernameless/AppImages/devsidecar.appimage --no-sandbox"
+spawn-at-startup "sh" "-c" "sleep 2 && env DESKTOPINTEGRATION=1 $HOME/AppImages/devsidecar.appimage --no-sandbox"
 
 window-rule {
     match title=".*HMCL.*|.*Hello Minecraft.*"
