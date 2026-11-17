@@ -213,17 +213,28 @@ fi
 # ---------------------------------------------------------------------------
 section "备份原有配置并建立软链接"
 
-link_one() {
-  local name="$1" src dst
-  src="$CONFIG_SRC/$name"
+# ---------------------------------------------------------------------------
+#  软链接映射表  （仓库路径 => 系统路径）
+#    configs/<应用>/  ->  ~/.config/<应用>/
+#    home/<点文件>    ->  ~/<点文件>
+#  新增应用时，在这里加一行即可
+# ---------------------------------------------------------------------------
+LINKS=(
+  "configs/niri|$HOME/.config/niri"
+  "configs/mango|$HOME/.config/mango"
+  "configs/waybar|$HOME/.config/waybar"
+  "configs/micro|$HOME/.config/micro"
+  "configs/geany|$HOME/.config/geany"
+  "configs/kitty|$HOME/.config/kitty"
+  "home/zshrc|$HOME/.zshrc"
+)
 
-  case "$name" in
-    zshrc) dst="$HOME/.zshrc" ;;
-    *)     dst="$HOME/.config/$name" ;;
-  esac
+link_one() {
+  local rel="$1" dst="$2" src
+  src="$REPO_DIR/$rel"
 
   if [[ ! -e "$src" ]]; then
-    warn "configs/$name 不存在，跳过"
+    warn "$rel 不存在，跳过"
     return 0
   fi
 
@@ -242,9 +253,8 @@ link_one() {
   ok "$dst  ==>  $src"
 }
 
-LINK_LIST=(niri mango waybar micro geany kitty zshrc)
-for item in "${LINK_LIST[@]}"; do
-  link_one "$item"
+for entry in "${LINKS[@]}"; do
+  link_one "${entry%%|*}" "${entry##*|}"
 done
 
 # ---------------------------------------------------------------------------
@@ -253,8 +263,8 @@ done
 section "修正脚本执行权限"
 for f in \
   "$CONFIG_SRC/niri/screenshot.sh" \
-  "$CONFIG_SRC/waybar/power_menu.sh" \
-  "$CONFIG_SRC/waybar/toggle_clock.sh" \
+  "$CONFIG_SRC/waybar/scripts/power_menu.sh" \
+  "$CONFIG_SRC/waybar/scripts/toggle_clock.sh" \
   "$CONFIG_SRC/waybar/scripts/weather.sh"; do
   if [[ -f "$f" ]]; then
     run chmod +x "$f"
