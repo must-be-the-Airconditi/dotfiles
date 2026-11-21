@@ -68,3 +68,7 @@ desktop.ini
 *.tmp
 *.pid
 *.sock
+
+# Python 缓存（wallfx 是 Python 脚本）
+__pycache__/
+*.pyc
