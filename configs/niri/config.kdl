@@ -16,6 +16,7 @@ input {
 
 // 自动启动项
 spawn-at-startup "waybar"
+spawn-at-startup "awww-daemon"
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/wallpaper"
 spawn-at-startup "mako"
 
@@ -78,6 +79,9 @@ binds {
     Mod+1 { focus-workspace 1; }
     Mod+2 { focus-workspace 2; }
     Mod+3 { focus-workspace 3; }
+
+    // 换壁纸：Quickshell 缩略图选择器，选中后走 wallfx 转场
+    Mod+W { spawn "sh" "-c" "$HOME/.local/bin/wallpaper-pick"; }
 }
 
 window-rule {
@@ -139,4 +143,11 @@ window-rule {
 window-rule {
     match title=".*MOTD.*"
     open-fullscreen false
+}
+layer-rule {
+    match namespace="^mako$"
+    background-effect {
+        blur true
+        xray true
+    }
 }

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# wallpaper-pick — 打开缩略图选择器（Quickshell 窗口），选中后交给 wallpaper-next。
+set -uo pipefail
+qs_ready() { qs -c wallfx ipc call wallpick state >/dev/null 2>&1; }
+if ! qs_ready; then
+  setsid qs -c wallfx >/dev/null 2>&1 &
+  for _ in $(seq 1 60); do sleep 0.05; qs_ready && break; done
+fi
+qs -c wallfx ipc call wallpick open >/dev/null 2>&1 || {
+  echo "wallpaper-pick: quickshell 没起来" >&2; exit 1; }

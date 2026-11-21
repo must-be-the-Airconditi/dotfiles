@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================================
 #  Arch Linux Dotfiles · 一键安装脚本
-#  Niri / MangoWM / Waybar / Fuzzel / Kitty / Zsh / Mako / Swaybg
+#  Niri / MangoWM / Waybar / Fuzzel / Kitty / Zsh / Mako / awww + wallfx
 #
 #  用法:
 #    ./install.sh                 完整安装（软件包 + 配置软链接）
@@ -81,13 +81,15 @@ REPO_PKGS=(
   # 窗口管理器
   niri mangowm
   # 桌面组件
-  waybar mako fuzzel swaybg
+  waybar mako fuzzel
+  # 壁纸：awww 常驻守护 + Quickshell 缩略图选择器（wallfx 转场）
+  awww quickshell
   # 终端 / Shell
   kitty zsh
   # 编辑器 / IDE
   nano micro geany pycharm-community-edition
   # 开发环境
-  direnv git
+  direnv git python uv
   # 配置中直接调用的系统工具
   grim slurp satty wl-clipboard brightnessctl playerctl
   pacman-contrib jq curl
@@ -121,9 +123,9 @@ step "日志文件:   $LOG_FILE"
 [[ $DRY_RUN -eq 1 ]] && warn "DRY-RUN 模式：不会修改任何文件"
 
 # 便携性检查：所有配置都应使用 $HOME，而不是写死的 /home/<用户名>
-if grep -rIq "/home/[a-zA-Z]" "$CONFIG_SRC" "$REPO_DIR/home" 2>/dev/null; then
+if grep -rIq "/home/[a-zA-Z]" "$CONFIG_SRC" "$REPO_DIR/home" "$REPO_DIR/bin" 2>/dev/null; then
   warn "以下位置仍写死了家目录路径（换用户名后会失效）："
-  grep -rIn "/home/[a-zA-Z]" "$CONFIG_SRC" "$REPO_DIR/home" 2>/dev/null | sed 's/^/      /'
+  grep -rIn "/home/[a-zA-Z]" "$CONFIG_SRC" "$REPO_DIR/home" "$REPO_DIR/bin" 2>/dev/null | sed 's/^/      /'
   warn "建议改成 \$HOME/... 写法"
 else
   ok "配置全部使用 \$HOME，任意用户名均可安装"
@@ -230,8 +232,12 @@ LINKS=(
   "configs/micro|$HOME/.config/micro"
   "configs/geany|$HOME/.config/geany"
   "configs/kitty|$HOME/.config/kitty"
+  "configs/quickshell|$HOME/.config/quickshell"
   "home/zshrc|$HOME/.zshrc"
   "bin/wallpaper.sh|$HOME/.local/bin/wallpaper"
+  "bin/wallfx|$HOME/.local/bin/wallfx"
+  "bin/wallpaper-next|$HOME/.local/bin/wallpaper-next"
+  "bin/wallpaper-pick|$HOME/.local/bin/wallpaper-pick"
 )
 
 link_one() {
@@ -271,7 +277,10 @@ for f in \
   "$CONFIG_SRC/waybar/scripts/power_menu.sh" \
   "$CONFIG_SRC/waybar/scripts/toggle_clock.sh" \
   "$CONFIG_SRC/waybar/scripts/weather.sh" \
-  "$REPO_DIR/bin/wallpaper.sh"; do
+  "$REPO_DIR/bin/wallpaper.sh" \
+  "$REPO_DIR/bin/wallfx" \
+  "$REPO_DIR/bin/wallpaper-next" \
+  "$REPO_DIR/bin/wallpaper-pick"; do
   if [[ -f "$f" ]]; then
     run chmod +x "$f"
     ok "chmod +x ${f#"$REPO_DIR"/}"

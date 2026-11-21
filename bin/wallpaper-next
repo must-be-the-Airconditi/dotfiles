@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# wallpaper-next — 换一张壁纸，用 wallfx 的转场（contagion / outline）。
+# 由 niri 的 Mod+Shift+W 调用；也可以直接跑，或传一个具体文件路径。
+set -uo pipefail
+
+DIR="${WALLPAPER_DIR:-$HOME/Pictures/wallpapers}"
+WALLFX="$HOME/.local/bin/wallfx"
+shopt -s nullglob
+
+img="${1:-}"
+if [ -z "$img" ]; then
+  files=()
+  for f in "$DIR"/*.jpg "$DIR"/*.jpeg "$DIR"/*.png "$DIR"/*.webp; do
+    [ -f "$f" ] && files+=("$f")
+  done
+  [ ${#files[@]} -eq 0 ] && { echo "wallpaper-next: no images in $DIR" >&2; exit 1; }
+
+  cur="$(awww query 2>/dev/null | sed -n 's/.*currently displaying: image: //p' | head -n1)"
+  cand=()
+  for f in "${files[@]}"; do
+    [ "$(readlink -f "$f")" != "$(readlink -f "$cur" 2>/dev/null || echo /nonexistent)" ] && cand+=("$f")
+  done
+  [ ${#cand[@]} -eq 0 ] && cand=("${files[@]}")
+
+  # 没带参数：打开缩略图选择器
+  exec "$HOME/.local/bin/wallpaper-pick"
+fi
+img="$(readlink -f "$img")"
+[ -f "$img" ] || { echo "wallpaper-next: no such file: $img" >&2; exit 1; }
+# 记住这次选择，下次开机由 wallpaper 接回来
+mkdir -p "$HOME/.config/dotfiles" 2>/dev/null && printf "%s
+" "$img" > "$HOME/.config/dotfiles/wallpaper" 2>/dev/null || true
+cur="$(awww query 2>/dev/null | sed -n 's/.*currently displaying: image: //p' | head -n1)"
+
+# 新壁纸的转场地图：已有缓存就是瞬时，没准备过才会现抠（outline 约 7s）
+sel=""
+if [ -x "$WALLFX" ]; then
+  sel="$("$WALLFX" elige "$img" 2>/dev/null)" || sel=""
+fi
+
+# quickshell 只在转场时启动，转完就退出（idle 时 0 内存）
+qs_ready() { qs -c wallfx ipc call wallfx state >/dev/null 2>&1; }
+if ! qs_ready; then
+  setsid qs -c wallfx >/dev/null 2>&1 &
+  for _ in $(seq 1 40); do sleep 0.05; qs_ready && break; done
+fi
+
+if [ -n "$cur" ] && [ -n "$sel" ] && [ "$cur" != "$img" ]; then
+  read -r kind m1 m2 <<<"$sel"
+  ok="$(qs -c wallfx ipc call wallfx play "$cur" "$img" "$kind" "$m1" "${m2:-$m1}" 2>/dev/null)"
+  if [ "$ok" = "ok" ]; then
+    # 转场跑完就把 quickshell 收掉（只在换壁纸时占内存）
+    ( sleep 6; [ "$(qs -c wallfx ipc call wallfx state 2>/dev/null)" = idle ] && pkill -x qs ) >/dev/null 2>&1 &
+    exit 0
+  fi
+fi
+
+awww img "$img" --transition-type fade --transition-duration 0.5 >/dev/null 2>&1 \
+  || awww img "$img" >/dev/null 2>&1 || true

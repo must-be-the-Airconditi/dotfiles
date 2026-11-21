@@ -18,7 +18,7 @@
 | 启动器 | **Fuzzel** | Wayland 原生启动器 |
 | 终端 | **Kitty** | GPU 加速 + Catppuccin 配色 |
 | Shell | **Zsh** | Oh My Zsh + Powerlevel10k + autosuggestions |
-| 通知 / 壁纸 | **Mako** / **Swaybg** | 毛玻璃通知；壁纸由你自己选（仓库不附带图片） |
+| 通知 / 壁纸 | **Mako** / **awww** | 毛玻璃通知；壁纸自己选，换图带 wallfx 像素转场 |
 | 编辑器 / IDE | **nano / micro / Geany / PyCharm** | 终端用 nano、micro，图形界面用 Geany、PyCharm |
 | Python 环境 | **direnv** | 进目录自动加载 `.envrc` 虚拟环境 |
 
@@ -30,18 +30,20 @@ dotfiles/
 │   ├── niri/                # config.kdl + screenshot.sh
 │   ├── mango/               # config.conf
 │   ├── waybar/              # config.jsonc / style.css / scripts/
+│   ├── quickshell/          # wallfx/ 壁纸选择器与转场（QML + shader）
 │   ├── micro/               # bindings.json
 │   ├── geany/               # geany.conf / keybindings.conf / 配色
 │   └── kitty/               # kitty.conf + 主题
 ├── home/
 │   └── zshrc                # → ~/.zshrc
 ├── bin/
-│   └── wallpaper.sh         # → ~/.local/bin/wallpaper（选壁纸 / 开机拉起）
+│   ├── wallpaper.sh         # → ~/.local/bin/wallpaper（选 / 设 / 恢复壁纸）
+│   ├── wallpaper-next       # → 换一张，带转场
+│   ├── wallpaper-pick       # → 拉起 Quickshell 缩略图选择器
+│   └── wallfx               # → 生成转场贴图（Python）
 ├── install.sh               # 装包 → 备份 → 软链接
 ├── .gitignore
 └── README.md
-```
-
 映射规则三条：**`configs/X` → `~/.config/X`**，**`home/X` → `~/X`**，**`bin/X` → `~/.local/bin/X`**。
 新增一个应用 = 把配置放进对应位置，再在 `install.sh` 的 `LINKS` 表里加一行。
 
@@ -79,6 +81,7 @@ cd ~/dotfiles
 | `Mod + Q` | 关闭窗口 |
 | `Mod + F` / `Mod + Shift + F` | 当前列最大化 / 切换浮动 |
 | `Mod + Shift + S` | 区域截图（grim + slurp + satty） |
+| `Mod + W` | 换壁纸（Quickshell 缩略图选择器） |
 | `Mod + ← / →` | 切换列焦点 |
 | `Mod + ↑ / ↓` | 切换窗口焦点 |
 | `Mod + 1 / 2 / 3` | 切换工作区 |
@@ -90,6 +93,8 @@ cd ~/dotfiles
 | `SUPER + Enter` / `SUPER + T` | 打开 Kitty |
 | `SUPER + D` | 打开 Fuzzel |
 | `SUPER + Q` | 关闭窗口 |
+| `SUPER + W` | 换壁纸（同一套选择器） |
+| `SUPER + Shift + S` | 区域截图 |
 | `SUPER + F` | 切换全屏 |
 | `SUPER + Shift + R` | 重新加载配置 |
 | `SUPER + Shift + E` | 退出 MangoWM |
@@ -152,22 +157,35 @@ ls -l ~/.config/niri ~/.zshrc          # 检查软链接是否正常
 wallpaper                              # 换壁纸（见下）
 ```
 
-**壁纸自己选，仓库不替你决定。** 仓库里不放图片文件——每个人的喜好不一样。开机时 `wallpaper` 按这个顺序找：
+**壁纸自己选，仓库不替你决定。** 仓库里不放图片——每个人的喜好不一样。后端是 awww：开机时 niri / mango 起 **awww-daemon**，再跑 **wallpaper** 把上次那张接回来。
 
-1. `WALLPAPER` 环境变量（临时覆盖）
-2. `~/.config/dotfiles/wallpaper` 里记着你上次选的图
-3. `~/Pictures` 下排第一的图片（还没选过时的临时顶替）
-4. 主题底色 `#1e1e2e`（一张图都没有也不会黑屏）
+换图走 Quickshell 缩略图选择器，点一张就用 wallfx 的像素转场铺满屏幕：
 
-**装完第一件事：挑一张。** 把喜欢的图放进 `~/Pictures`，然后：
+| 操作 | Niri | MangoWM |
+| :--- | :--- | :--- |
+| 换壁纸 | `Mod + W` | `SUPER + W` |
+
+命令行也一样：
 
 ```bash
-wallpaper pick            # fuzzel 里选一张，选择会记住
-wallpaper set ~/图/a.jpg   # 也可以直接指定路径
-wallpaper list            # 看候选，● 是当前选中的
-wallpaper current         # 确认现在跑的是哪张
-wallpaper -m stretch      # 换缩放模式：fill / fit / stretch / center / tile
+wallpaper pick              # 缩略图选择器（Quickshell）
+wallpaper next              # 换下一张
+wallpaper next ~/图/a.jpg   # 指定一张，带转场
+wallpaper set ~/图/a.jpg    # 立刻设成这张（无转场）
+wallpaper list              # 候选，● 是当前
+wallpaper current           # 现在跑的是哪张
+wallpaper -m fit            # 缩放方式：fill（默认）/ fit / stretch / center
 ```
+
+开机时的挑选顺序：
+
+1. `WALLPAPER` 环境变量（临时覆盖）
+2. awww 自己记着的上一张（`awww restore`）
+3. `~/.config/dotfiles/wallpaper` 里记着你上次选的图
+4. `~/Pictures` / `~/Pictures/wallpapers` 下排第一张
+5. 主题底色 `0x1e1e2e`——一张图都没有也不会黑屏
+
+转场两种：**像素殖民地**（任意图片，不依赖模型）与**角色轮廓**（把主体抠出来再描边铺开）。后者要 `wallfx` 用 uv 建一个带 `rembg` + onnxruntime 的虚拟环境，第一次跑某张图会慢几秒；没装就自动退回殖民地转场，不影响使用。Quickshell 只在换图那几秒才启动，转完自己退出。
 
 你的选择存在 `~/.config/dotfiles/wallpaper`（一行绝对路径），不进仓库，所以换人换机器互不影响。
 

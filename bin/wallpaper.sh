@@ -1,155 +1,208 @@
 #!/usr/bin/env bash
-# wallpaper —— 壁纸启动器 + 选择器
+# wallpaper — 选 / 设 / 看当前壁纸
 #
-# 设计原则：仓库不替用户决定壁纸。开机时用你自己选过的那张；
-# 你还没选过，就先用 ~/Pictures 里第一张顶着（不会黑屏），并提示你去选。
+# 后端是 awww：awww-daemon 常驻，awww img 换图，awww restore 恢复上一张。
+# 开机时 niri / mango 调 wallpaper（不带参数）把上次的壁纸接回来。
 #
-# 用法：
-#   wallpaper                 # 开机用：选过的图 → ~/Pictures 第一张 → 主题底色
-#   wallpaper pick            # fuzzel 里挑一张，选择会记住
-#   wallpaper set ~/a.jpg     # 直接指定并记住
-#   wallpaper list            # 列出候选
-#   wallpaper current         # 当前用的是哪张
-#   wallpaper -m stretch      # 本次缩放模式：fill / fit / stretch / center / tile
-#
-# 你选的图记在 ~/.config/dotfiles/wallpaper（一行绝对路径），不进仓库。
-
+#   wallpaper               恢复上次的壁纸（开机自启动调它）
+#   wallpaper pick          打开缩略图选择器（Quickshell），没有就退回 fuzzel
+#   wallpaper set <图片>    设成指定图片
+#   wallpaper next [图片]   换下一张 / 指定一张，带 wallfx 转场
+#   wallpaper list          列出候选图片，● 是当前那张
+#   wallpaper current       打印当前壁纸路径
+#   wallpaper -m fit        缩放方式：fill（默认）/ fit / stretch / center
 set -o pipefail
 
-MODE=fill
 CONF_DIR="$HOME/.config/dotfiles"
-CONF_FILE="$CONF_DIR/wallpaper"
-PICTURES="$HOME/Pictures"
+CONF="$CONF_DIR/wallpaper"
+MODE="crop"
 
-c_info=; c_ok=; c_warn=; c_err=; c_dim=; c_off=
-if [ -t 1 ]; then
-  c_info="$(printf "\033[1;36m")"; c_ok="$(printf "\033[1;32m")"
-  c_warn="$(printf "\033[1;33m")"; c_err="$(printf "\033[1;31m")"
-  c_dim="$(printf "\033[2m")";    c_off="$(printf "\033[0m")"
-fi
+say()  { printf '\033[1;34m›\033[0m %s\n' "$*"; }
+warn() { printf '\033[1;33m!\033[0m %s\n' "$*" >&2; }
+die()  { printf '\033[1;31m✗\033[0m %s\n' "$*" >&2; exit 1; }
+has()  { command -v "$1" >/dev/null 2>&1; }
 
-say()  { printf "%s::%s %s\n" "$c_info" "$c_off" "$*"; }
-ok()   { printf "%s✔%s %s\n" "$c_ok" "$c_off" "$*"; }
-warn() { printf "%s!%s %s\n" "$c_warn" "$c_off" "$*"; }
-die()  { printf "%s✘%s %s\n" "$c_err" "$c_off" "$*" >&2; exit 1; }
+help() {
+  cat <<'EOF'
+wallpaper — 选 / 设 / 看当前壁纸（后端 awww）
 
-usage() {
-  sed -n "2,19p" "$0" | sed "s/^# \{0,1\}//"
-  exit 0
+用法：wallpaper [命令] [参数] [-m 缩放方式]
+
+命令：
+  （无）            恢复上次的壁纸（开机自启动用这个）
+  pick              缩略图选择器（Quickshell），没有就退回 fuzzel 列表
+  set <图片>        设成指定图片
+  next [图片]       换下一张；带 wallfx 像素转场
+  list              候选图片，● 标出当前
+  current           打印当前壁纸路径
+
+选项：
+  -m, --mode <方式>  fill / fit / stretch / center（默认 fill）
+  -h, --help         显示本帮助
+
+说明：~/.config/dotfiles/wallpaper 里记着你的选择，不进仓库、不影响别人。
+没有图片时用主题底色 0x1e1e2e，不会黑屏。
+EOF
 }
 
-# ~/Pictures 下所有图片，按路径排序
-list_images() {
-  find "$PICTURES" -maxdepth 3 -type f \
-    \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) \
-    2>/dev/null | sort
+mode_from_word() {
+  case "$1" in
+    fill|crop)     printf 'crop' ;;
+    fit)           printf 'fit' ;;
+    stretch)       printf 'stretch' ;;
+    center|no)     printf 'no' ;;
+    *)             return 1 ;;
+  esac
 }
 
-is_image() { [ -n "$1" ] && [ -f "$1" ]; }
+images() {
+  local d f
+  for d in "$HOME/Pictures/wallpapers" "$HOME/Pictures"; do
+    [ -d "$d" ] || continue
+    for f in "$d"/*.jpg "$d"/*.jpeg "$d"/*.png "$d"/*.webp "$d"/*.gif; do
+      [ -f "$f" ] && printf '%s\n' "$f"
+    done
+  done
+  return 0
+}
 
-saved() { [ -s "$CONF_FILE" ] && head -n 1 "$CONF_FILE"; }
+current() {
+  awww query 2>/dev/null | sed -n 's/.*currently displaying: image: //p' | head -n 1
+}
 
 save() {
-  mkdir -p "$CONF_DIR"
-  printf "%s\n" "$1" > "$CONF_FILE"
+  mkdir -p "$CONF_DIR" 2>/dev/null || return 0
+  printf '%s\n' "$1" > "$CONF" 2>/dev/null || warn "记不住选择（写不了 $CONF）"
+  return 0
 }
 
-# 真正拉起 swaybg。传入空值 = 底色兜底
+ensure_daemon() {
+  has awww || { warn "没装 awww：sudo pacman -S awww"; return 1; }
+  pgrep -x awww-daemon >/dev/null 2>&1 && return 0
+  if has setsid; then
+    setsid --fork awww-daemon >/dev/null 2>&1 || setsid awww-daemon >/dev/null 2>&1 &
+  else
+    nohup awww-daemon >/dev/null 2>&1 &
+  fi
+  local i=0
+  while [ "$i" -lt 40 ]; do
+    pgrep -x awww-daemon >/dev/null 2>&1 && return 0
+    sleep 0.05
+    i=$((i + 1))
+  done
+  warn "awww-daemon 没起来（这条命令要跑在 Wayland 会话里）"
+  return 1
+}
+
 apply() {
-  img="$1"
-  pkill -x swaybg 2>/dev/null
-  sleep 0.2
-  if is_image "$img"; then
-    if command -v setsid >/dev/null 2>&1; then
-      setsid --fork swaybg -i "$img" -m "$MODE" >/dev/null 2>&1 < /dev/null
-    else
-      nohup swaybg -i "$img" -m "$MODE" >/dev/null 2>&1 < /dev/null &
-    fi
-    ok "壁纸：$img  ${c_dim}($MODE)${c_off}"
-  else
-    if command -v setsid >/dev/null 2>&1; then
-      setsid --fork swaybg -c "#1e1e2e" >/dev/null 2>&1 < /dev/null
-    else
-      nohup swaybg -c "#1e1e2e" >/dev/null 2>&1 < /dev/null &
-    fi
-    warn "还没有选壁纸，先用主题底色 #1e1e2e 顶着"
-    warn "挑一张：${c_dim}wallpaper pick${c_off}   （把图放进 ~/Pictures 更容易挑）"
+  local img="$1" i=0
+  case "$img" in
+    0x*) ;;
+    *) [ -f "$img" ] || { warn "图片不存在: $img"; return 1; } ;;
+  esac
+  ensure_daemon || return 1
+  while [ "$i" -lt 40 ]; do
+    case "$img" in
+      0x*)
+        if awww img "$img" --transition-type none >/dev/null 2>&1; then return 0; fi
+        ;;
+      *)
+        if awww img "$img" --resize "$MODE" --transition-type none >/dev/null 2>&1; then return 0; fi
+        ;;
+    esac
+    sleep 0.05
+    i=$((i + 1))
+  done
+  warn "awww 设置壁纸失败: $img"
+  return 1
+}
+
+restore_last() {
+  local img
+  if [ -n "$WALLPAPER" ] && [ -f "$WALLPAPER" ]; then
+    apply "$WALLPAPER" && return 0
   fi
-}
-
-# 挑图优先级：环境变量 WALLPAPER → 你选过的 → ~/Pictures 第一张 → 空（底色）
-resolve() {
-  if is_image "$WALLPAPER"; then printf "%s" "$WALLPAPER"; return; fi
-  s="$(saved)"
-  if is_image "$s"; then printf "%s" "$s"; return; fi
-  list_images | head -n 1
-}
-
-cmd_pick() {
-  list="$(list_images)"
-  if [ -z "$list" ]; then
-    die "~/Pictures 里没有图片（jpg/jpeg/png/webp）。放几张进去，或用 wallpaper set /路径/图.png"
+  ensure_daemon || return 1
+  # awww 自己记着上次显示的那张，优先接回来
+  awww restore >/dev/null 2>&1 && return 0
+  if [ -s "$CONF" ]; then
+    img="$(head -n 1 "$CONF")"
+    if [ -n "$img" ] && [ -f "$img" ]; then apply "$img" && return 0; fi
   fi
-  count="$(printf "%s\n" "$list" | wc -l)"
-  say "在 ~/Pictures 里找到 $count 张图"
-  chosen=""
-  if command -v fuzzel >/dev/null 2>&1; then
-    chosen="$(printf "%s\n" "$list" | fuzzel --dmenu --lines 15 --prompt "壁纸 › " --width 60)"
-  else
-    printf "%s\n" "$list" | nl -w 2 -s ". "
-    printf "输入编号（回车取消）："
-    read -r idx
-    if [ -n "$idx" ]; then
-      chosen="$(printf "%s\n" "$list" | sed -n "$idx"p)"
+  img="$(images | head -n 1)"
+  if [ -n "$img" ]; then apply "$img" && return 0; fi
+  apply 0x1e1e2e
+  return 0
+}
+
+set_image() {
+  local img="$1"
+  if [ -z "$img" ]; then die "用法: wallpaper set <图片路径>"; fi
+  [ -f "$img" ] || die "图片不存在: $img"
+  img="$(readlink -f "$img")"
+  if has wallpaper-next && has qs; then
+    if wallpaper-next "$img" >/dev/null 2>&1; then
+      save "$img"
+      say "壁纸已换成 $(basename "$img")"
+      return 0
     fi
   fi
-  if [ -z "$chosen" ]; then warn "没选，保持原样"; exit 0; fi
-  save "$chosen"
-  apply "$chosen"
-  printf "%s已记住，下次开机就用这张。%s\n" "$c_dim" "$c_off"
+  apply "$img" || die "设置失败"
+  save "$img"
+  say "壁纸已换成 $(basename "$img")"
 }
 
-cmd_set() {
-  p="$1"
-  [ -z "$p" ] && die "用法：wallpaper set /路径/图片.jpg"
-  if [ ! -f "$p" ]; then die "文件不存在：$p"; fi
-  abs="$(cd "$(dirname "$p")" && pwd)/$(basename "$p")"
-  save "$abs"
-  apply "$abs"
-  printf "%s已记住，下次开机就用这张。%s\n" "$c_dim" "$c_off"
+pick() {
+  if has wallpaper-pick && has qs; then
+    exec wallpaper-pick
+  fi
+  has fuzzel || die "没有 fuzzel，也没有 wallpaper-pick。可以用 wallpaper set <图片> 直接设"
+  local list sel
+  list="$(images)"
+  [ -n "$list" ] || die "~/Pictures 里没有图片，先放几张进去"
+  sel="$(printf '%s\n' "$list" | sed "s|^$HOME/||" | fuzzel --dmenu --lines 15 --prompt '壁纸 › ')" || true
+  [ -n "$sel" ] || return 0
+  set_image "$HOME/$sel"
 }
 
-cmd_list() {
-  list="$(list_images)"
-  if [ -z "$list" ]; then die "~/Pictures 里没有图片"; fi
-  s="$(saved)"
+list_images() {
+  local cur f mark
+  cur="$(current)"
   while IFS= read -r f; do
-    if [ "$f" = "$s" ]; then printf "%s●%s %s\n" "$c_ok" "$c_off" "$f"
-    else printf "  %s\n" "$f"; fi
-  done <<< "$list"
-  printf "%s● = 当前选定%s\n" "$c_dim" "$c_off"
+    [ -n "$f" ] || continue
+    mark=" "
+    if [ -n "$cur" ] && [ "$(readlink -f "$f")" = "$(readlink -f "$cur" 2>/dev/null)" ]; then
+      mark="●"
+    fi
+    printf '%s %s\n' "$mark" "$f"
+  done <<< "$(images)"
 }
 
-cmd_current() {
-  s="$(saved)"
-  if is_image "$s"; then ok "已选定：$s"; else warn "还没选过壁纸（运行 wallpaper pick）"; fi
-  printf "%s正在运行的 swaybg：%s\n" "$c_dim" "$(pgrep -a -x swaybg | head -n 1 || echo 无)$(printf "%s" "$c_off")"
+main() {
+  local cmd
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -m|--mode)
+        shift
+        [ $# -gt 0 ] || die "-m 需要一个参数：fill / fit / stretch / center"
+        MODE="$(mode_from_word "$1")" || die "未知缩放方式: $1（fill / fit / stretch / center）"
+        shift
+        ;;
+      -h|--help) help; exit 0 ;;
+      *) break ;;
+    esac
+  done
+
+  if [ $# -gt 0 ]; then cmd="$1"; else cmd=""; fi
+  case "$cmd" in
+    "")        restore_last ;;
+    pick)      pick ;;
+    set)       shift; set_image "$1" ;;
+    next)      shift; exec wallpaper-next "$@" ;;
+    list)      list_images ;;
+    current)   current ;;
+    *)         die "未知命令: $cmd（wallpaper --help 看用法）" ;;
+  esac
 }
 
-case "$1" in
-  ""|start|apply)
-    img="$(resolve)"
-    apply "$img"
-    if [ -n "$img" ] && [ -z "$(saved)" ] && [ -z "$WALLPAPER" ]; then
-      printf "%s还没选过壁纸，上面这张只是 ~/Pictures 里排第一的。想换：wallpaper pick%s\n" "$c_dim" "$c_off"
-    fi ;;
-  pick)            cmd_pick ;;
-  set)             shift; cmd_set "$1" ;;
-  list|ls)         cmd_list ;;
-  current|status)  cmd_current ;;
-  -m|--mode)       shift; MODE="$1"; apply "$(resolve)" ;;
-  -h|--help|help)  usage ;;
-  *)
-    if is_image "$1"; then apply "$1"
-    else die "未知参数：$1（wallpaper --help 看用法）"; fi ;;
-esac
+main "$@"
